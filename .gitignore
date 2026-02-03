@@ -1,0 +1,31 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Data
+/data/
+*.log
+*.sock
+
+# Node.js bridge
+bridge/node_modules/
+bridge/package-lock.json
+
+# OAuth tokens (sensitive)
+*.token.json
+oauth_token.json
+miningos-token.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+

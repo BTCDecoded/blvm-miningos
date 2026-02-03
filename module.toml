@@ -1,0 +1,16 @@
+name = "blvm-miningos"
+version = "0.1.0"
+description = "MiningOS integration module for BLVM"
+author = "Bitcoin Commons Team"
+entry_point = "blvm-miningos"
+
+capabilities = [
+    "read_blockchain",
+    "subscribe_events",
+    "publish_events",
+    "call_module",
+    "get_block_template",
+    "submit_block",
+]
+
+

@@ -1,0 +1,20 @@
+{
+  "name": "blvm-miningos-bridge",
+  "version": "0.1.0",
+  "description": "Node.js bridge worker for MiningOS P2P integration",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "dependencies": {
+    "tether-wrk-base": "git+https://github.com/tetherto/tether-wrk-base.git",
+    "hyperswarm": "^4.0.0",
+    "@hyperswarm/rpc": "^3.4.0",
+    "debug": "^4.3.4"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
+
+

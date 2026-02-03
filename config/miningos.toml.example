@@ -1,0 +1,51 @@
+[miningos]
+enabled = true
+
+[p2p]
+enabled = true
+orchestrator_rpc_public_key = "64-char-hex-public-key-here"
+rack_id = "blvm-node-001"
+rack_type = "miner"
+auto_register = true
+reconnect_interval_seconds = 30
+
+[http]
+enabled = true
+app_node_url = "http://localhost:3000"
+oauth_provider = "google"
+oauth_client_id = "your-google-client-id"
+oauth_client_secret = "your-google-client-secret"
+oauth_callback_url = "http://localhost:3000/oauth/google/callback"
+token_cache_file = "miningos-token.json"
+
+[stats]
+enabled = true
+collection_interval_seconds = 60
+hashrate_unit = "TH/s"
+temperature_unit = "celsius"
+power_unit = "watts"
+
+[template]
+enabled = true
+update_interval_seconds = 30
+expose_via_http = true
+expose_via_p2p = true
+cache_duration_seconds = 10
+
+[actions]
+enabled = true
+supported_actions = [
+    "reboot",
+    "setPowerMode",
+    "updatePoolConfig",
+    "setHashrate"
+]
+require_approval = true
+timeout_seconds = 120
+
+[things]
+auto_register_miners = true
+miner_tag = "t-miner"
+update_interval_seconds = 60
+
+
