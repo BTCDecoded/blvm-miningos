@@ -1,9 +1,9 @@
 //! Configuration management for MiningOS integration
 
+use blvm_sdk_macros::config;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
-use std::fs;
 
+#[config(name = "miningos")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiningOsConfig {
     pub miningos: MiningOsSettings,
@@ -42,6 +42,9 @@ pub struct HttpConfig {
     pub oauth_callback_url: String,
     #[serde(default = "default_token_cache")]
     pub token_cache_file: String,
+    /// OAuth2 token endpoint URL (optional; derived from provider if not set)
+    #[serde(default)]
+    pub oauth_token_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,14 +93,8 @@ pub struct ThingsConfig {
     pub update_interval_seconds: u64,
 }
 
-impl MiningOsConfig {
-    pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
-        let content = fs::read_to_string(path)?;
-        let config: MiningOsConfig = toml::from_str(&content)?;
-        Ok(config)
-    }
-
-    pub fn default() -> Self {
+impl Default for MiningOsConfig {
+    fn default() -> Self {
         Self {
             miningos: MiningOsSettings { enabled: true },
             p2p: Some(P2PConfig {
@@ -116,6 +113,7 @@ impl MiningOsConfig {
                 oauth_client_secret: String::new(),
                 oauth_callback_url: "http://localhost:3000/oauth/google/callback".to_string(),
                 token_cache_file: "miningos-token.json".to_string(),
+                oauth_token_url: None,
             }),
             stats: Some(StatsConfig {
                 enabled: true,

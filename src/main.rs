@@ -1,159 +1,139 @@
 //! blvm-miningos - MiningOS integration module
 //!
-//! This module provides bidirectional integration between BLVM and MiningOS,
-//! enabling BLVM to register as a MiningOS "rack" (worker) via P2P and
-//! query MiningOS via HTTP REST API.
+//! When spawned by the node: reads MODULE_ID, SOCKET_PATH, DATA_DIR from env.
+//! For manual testing: blvm-miningos --module-id <id> --socket-path <path> --data-dir <dir>
 
 use anyhow::Result;
+use blvm_miningos::MiningOsModule;
+use blvm_miningos::config::MiningOsConfig;
+use blvm_miningos::{api::MiningOsModuleApi, MiningOsIntegrationManager};
+use blvm_node::module::integration::ModuleIntegration;
+use blvm_node::module::ipc::protocol::{
+    InvocationResultMessage, InvocationResultPayload, InvocationType,
+};
 use blvm_node::module::traits::EventType;
-use clap::Parser;
-use std::path::PathBuf;
+use blvm_sdk::module::{ModuleBootstrap, ModuleDb};
 use std::sync::Arc;
-use tracing::{debug, error, info, warn};
-
-mod http;
-mod data;
-mod actions;
-mod p2p;
-mod manager;
-mod config;
-mod error;
-mod client;
-mod nodeapi_ipc;
-
-use manager::MiningOsIntegrationManager;
-use client::ModuleClient;
-use nodeapi_ipc::NodeApiIpc;
-
-/// Command-line arguments for the module
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    /// Module ID (provided by node)
-    #[arg(long)]
-    module_id: Option<String>,
-
-    /// IPC socket path (provided by node)
-    #[arg(long)]
-    socket_path: Option<PathBuf>,
-
-    /// Data directory (provided by node)
-    #[arg(long)]
-    data_dir: Option<PathBuf>,
-}
+use tokio::sync::RwLock;
+use tracing::{error, info, warn};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize tracing
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    let args = Args::parse();
+    let bootstrap = ModuleBootstrap::from_env_or_defaults(
+        "blvm-miningos",
+        "data/modules/blvm-miningos.sock",
+        "data/modules/blvm-miningos",
+    );
 
-    // Get module ID (from args or environment)
-    let module_id = args.module_id
-        .or_else(|| std::env::var("MODULE_NAME").ok())
-        .unwrap_or_else(|| "blvm-miningos".to_string());
+    info!(
+        "blvm-miningos module starting... (module_id: {}, data_dir: {:?})",
+        bootstrap.module_id, bootstrap.data_dir
+    );
 
-    // Get data directory
-    let data_dir = args.data_dir
-        .or_else(|| std::env::var("MODULE_DATA_DIR").ok().map(PathBuf::from))
-        .unwrap_or_else(|| PathBuf::from("data"));
+    let mut integration = ModuleIntegration::connect(
+        bootstrap.socket_path.clone(),
+        bootstrap.module_id.clone(),
+        "blvm-miningos".into(),
+        env!("CARGO_PKG_VERSION").into(),
+        Some(MiningOsModule::cli_spec()),
+    )
+    .await
+    .map_err(|e| anyhow::anyhow!("Connection failed: {}", e))?;
 
-    info!("blvm-miningos module starting... (module_id: {}, data_dir: {:?})", module_id, data_dir);
+    integration
+        .subscribe_events(vec![
+            EventType::BlockMined,
+            EventType::BlockTemplateUpdated,
+            EventType::MiningDifficultyChanged,
+        ])
+        .await
+        .map_err(|e| anyhow::anyhow!("Subscription failed: {}", e))?;
 
-    // Get socket path (from args, env, or default)
-    let socket_path = args.socket_path
-        .or_else(|| std::env::var("BLLVM_MODULE_SOCKET").ok().map(PathBuf::from))
-        .or_else(|| std::env::var("MODULE_SOCKET_DIR").ok().map(|d| PathBuf::from(d).join("modules.sock")))
-        .unwrap_or_else(|| PathBuf::from("data/modules/modules.sock"));
+    let node_api = integration.node_api();
 
-    // Connect to node
-    let mut client = match ModuleClient::connect(
-        socket_path,
-        module_id.clone(),
-        "blvm-miningos".to_string(),
-        env!("CARGO_PKG_VERSION").to_string(),
-    ).await {
-        Ok(client) => client,
-        Err(e) => {
-            error!("Failed to connect to node: {}", e);
-            return Err(anyhow::anyhow!("Connection failed: {}", e));
-        }
-    };
-
-    // Subscribe to events
-    let event_types = vec![
-        EventType::BlockMined,
-        EventType::BlockTemplateUpdated,
-        EventType::MiningDifficultyChanged,
-    ];
-
-    if let Err(e) = client.subscribe_events(event_types).await {
-        error!("Failed to subscribe to events: {}", e);
-        return Err(anyhow::anyhow!("Subscription failed: {}", e));
-    }
-
-    // Create NodeAPI wrapper
-    let ipc_client = client.get_ipc_client();
-    let node_api = Arc::new(NodeApiIpc::new(ipc_client));
-
-    // Load configuration (try multiple possible locations)
-    let config_paths = vec![
-        data_dir.join("config/miningos.toml"),
-        data_dir.join("miningos.toml"),
+    let config_paths = [
+        bootstrap.data_dir.join("config.toml"),
+        bootstrap.data_dir.join("config/miningos.toml"),
+        bootstrap.data_dir.join("miningos.toml"),
         std::path::PathBuf::from("./config/miningos.toml"),
         std::path::PathBuf::from("./miningos.toml"),
     ];
-    
-    let config = config_paths.iter()
+
+    let config = config_paths
+        .iter()
         .find(|p| p.exists())
-        .and_then(|path| {
-            match crate::config::MiningOsConfig::load(path) {
-                Ok(cfg) => {
-                    info!("Loaded configuration from {:?}", path);
-                    Some(cfg)
-                }
-                Err(e) => {
-                    warn!("Failed to load config from {:?}: {}", path, e);
-                    None
-                }
-            }
+        .map(|path| {
+            info!("Loaded configuration from {:?}", path);
+            MiningOsConfig::load(path).unwrap_or_else(|e| {
+                warn!("Failed to load config from {:?}: {}, using defaults", path, e);
+                MiningOsConfig::default()
+            })
         })
         .unwrap_or_else(|| {
             info!("No config file found, using defaults");
-            crate::config::MiningOsConfig::default()
+            MiningOsConfig::default()
         });
 
-    // Create integration manager
-    let mut manager = MiningOsIntegrationManager::new(config, node_api);
+    let mut manager = MiningOsIntegrationManager::new(config, node_api.clone());
 
-    // Initialize
     if let Err(e) = manager.initialize().await {
         error!("Failed to initialize: {}", e);
         return Err(anyhow::anyhow!("Initialization failed: {}", e));
     }
 
-    // Start
     if let Err(e) = manager.start().await {
         error!("Failed to start: {}", e);
         return Err(anyhow::anyhow!("Start failed: {}", e));
     }
 
+    let manager = Arc::new(RwLock::new(manager));
+    let miningos_api = Arc::new(MiningOsModuleApi::with_node_api(
+        manager.read().await.get_action_handler(),
+        manager.read().await.get_thing_converter(),
+        node_api.clone(),
+    ));
+    if let Err(e) = node_api.register_module_api(miningos_api).await {
+        warn!("Failed to register miningos module API: {}", e);
+    }
+
     info!("blvm-miningos module started successfully");
 
-    // Start event loop
+    let db: Arc<dyn blvm_node::storage::database::Database> = match ModuleDb::open(&bootstrap.data_dir)
+        .or_else(|_| ModuleDb::open(std::env::temp_dir().join("blvm-miningos")))
+    {
+        Ok(module_db) => module_db.as_db(),
+        Err(_) => {
+            let dir = std::env::temp_dir().join("blvm-miningos").join("db");
+            std::fs::create_dir_all(&dir).ok();
+            Arc::from(
+                blvm_node::storage::database::create_database(
+                    &dir,
+                    blvm_node::storage::database::DatabaseBackend::Redb,
+                    None,
+                )
+                .expect("fallback temp db"),
+            )
+        }
+    };
+    let invocation_ctx = blvm_sdk::module::runner::InvocationContext::new(Arc::clone(&db));
+    let module = MiningOsModule {
+        manager: Arc::clone(&manager),
+    };
+
+    let mut invocation_rx = integration.invocation_receiver().expect("CLI spec provided");
+
     let mut event_handle = tokio::spawn(async move {
         loop {
-            // Handle events from node
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
     });
 
-    // Start periodic statistics collection
-    let stats_collector = Arc::clone(&manager.stats_collector);
-    let stats_handle = if let Some(stats_config) = &manager.config.stats {
+    let stats_collector = Arc::clone(&manager.read().await.stats_collector);
+    let stats_handle = if let Some(stats_config) = &manager.read().await.config.stats {
         if stats_config.enabled {
             let interval = stats_config.collection_interval_seconds;
             Some(tokio::spawn(async move {
@@ -172,9 +152,8 @@ async fn main() -> Result<()> {
         None
     };
 
-    // Start periodic template updates
-    let template_provider = Arc::clone(&manager.template_provider);
-    let template_handle = if let Some(template_config) = &manager.config.template {
+    let template_provider = Arc::clone(&manager.read().await.template_provider);
+    let template_handle = if let Some(template_config) = &manager.read().await.config.template {
         if template_config.enabled {
             let interval = template_config.update_interval_seconds;
             Some(tokio::spawn(async move {
@@ -193,11 +172,53 @@ async fn main() -> Result<()> {
         None
     };
 
-    // Keep running until interrupted
-    tokio::signal::ctrl_c().await?;
+    loop {
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {
+                info!("Shutting down...");
+                break;
+            }
+            inv = invocation_rx.recv() => {
+                if let Some((invocation, result_tx)) = inv {
+                    let result = match &invocation.invocation_type {
+                        InvocationType::Cli { subcommand, args } => {
+                            match module.dispatch_cli(&invocation_ctx, subcommand, args) {
+                                Ok(stdout) => InvocationResultMessage {
+                                    correlation_id: invocation.correlation_id,
+                                    success: true,
+                                    payload: Some(InvocationResultPayload::Cli {
+                                        stdout,
+                                        stderr: String::new(),
+                                        exit_code: 0,
+                                    }),
+                                    error: None,
+                                },
+                                Err(e) => InvocationResultMessage {
+                                    correlation_id: invocation.correlation_id,
+                                    success: false,
+                                    payload: None,
+                                    error: Some(e.to_string()),
+                                },
+                            }
+                        }
+                        _ => InvocationResultMessage {
+                            correlation_id: invocation.correlation_id,
+                            success: false,
+                            payload: None,
+                            error: Some("RPC not implemented".to_string()),
+                        },
+                    };
+                    let _ = result_tx.send(result);
+                } else {
+                    info!("Invocation channel closed, module unloading");
+                    break;
+                }
+            }
+        }
+    }
+
     info!("Shutting down...");
 
-    // Cancel background tasks
     event_handle.abort();
     if let Some(handle) = stats_handle {
         handle.abort();
@@ -206,11 +227,9 @@ async fn main() -> Result<()> {
         handle.abort();
     }
 
-    // Stop
-    if let Err(e) = manager.stop().await {
+    if let Err(e) = manager.write().await.stop().await {
         error!("Failed to stop: {}", e);
     }
 
     Ok(())
 }
-

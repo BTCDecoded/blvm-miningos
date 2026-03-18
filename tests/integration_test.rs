@@ -7,7 +7,7 @@ mod tests {
     #[tokio::test]
     async fn test_config_loading() {
         // Test that default config works
-        let config = crate::config::MiningOsConfig::default();
+        let config = blvm_miningos::MiningOsConfig::default();
         assert!(config.miningos.enabled);
         assert!(config.p2p.is_some());
         assert!(config.http.is_some());
@@ -16,7 +16,7 @@ mod tests {
     #[tokio::test]
     async fn test_error_types() {
         // Test error creation
-        let err = crate::error::MiningOsError::AuthError("test".to_string());
+        let err = blvm_miningos::MiningOsError::AuthError("test".to_string());
         assert!(err.to_string().contains("test"));
     }
 }

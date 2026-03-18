@@ -47,13 +47,17 @@ impl MiningOsIntegrationManager {
         // Initialize HTTP client if enabled
         if let Some(http_config) = &self.config.http {
             if http_config.enabled {
+                let token_endpoint = http_config
+                    .oauth_token_url
+                    .clone()
+                    .unwrap_or_else(|| format!("{}/oauth/token", http_config.app_node_url.trim_end_matches('/')));
                 let oauth_config = crate::http::auth::OAuthConfig::new(
                     http_config.oauth_provider.clone(),
                     http_config.oauth_client_id.clone(),
                     http_config.oauth_client_secret.clone(),
                     http_config.oauth_callback_url.clone(),
                     http_config.token_cache_file.clone(),
-                    http_config.oauth_token_url.clone(),
+                    token_endpoint,
                 );
 
                 // Use data directory from config or default
@@ -75,7 +79,7 @@ impl MiningOsIntegrationManager {
             if p2p_config.enabled {
                 // Use data directory for socket path
                 let data_dir = std::env::var("MODULE_DATA_DIR")
-                    .or_else(|_| std::env::var("BLVM_DATA_DIR").ok())
+                    .or_else(|_| std::env::var("BLVM_DATA_DIR"))
                     .map(std::path::PathBuf::from)
                     .unwrap_or_else(|_| std::path::PathBuf::from("./data"));
                 let socket_path = data_dir.join("bridge.sock");

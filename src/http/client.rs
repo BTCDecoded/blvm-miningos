@@ -75,6 +75,16 @@ impl MiningOsHttpClient {
         ))
     }
 
+    /// Check OAuth status (has valid token)
+    pub async fn oauth_status(&self) -> (bool, String) {
+        let token = self.token.read().await;
+        if token.is_some() {
+            (true, "OAuth: authenticated (token present)".to_string())
+        } else {
+            (false, "OAuth: not authenticated (no token). Set MININGOS_ACCESS_TOKEN or run OAuth flow.".to_string())
+        }
+    }
+
     /// Set authentication token manually (for testing)
     pub async fn set_token(&self, token: String) {
         *self.token.write().await = Some(token);

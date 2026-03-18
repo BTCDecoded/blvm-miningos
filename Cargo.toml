@@ -25,6 +25,8 @@ path = "examples/basic_usage.rs"
 [dependencies]
 # BLVM dependencies
 blvm-node = { path = "../blvm-node", package = "blvm-node" }
+blvm-sdk = { path = "../blvm-sdk", default-features = false, features = ["node"] }
+blvm-sdk-macros = { path = "../blvm-sdk/crates/blvm-sdk-macros" }
 blvm-protocol = { path = "../blvm-protocol", package = "blvm-protocol" }
 blvm-consensus = { path = "../blvm-consensus", package = "blvm-consensus" }
 
@@ -46,9 +48,6 @@ thiserror = "1.0"
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# Command-line argument parsing
-clap = { version = "4.0", features = ["derive"] }
 
 # Configuration
 toml = "0.8"
