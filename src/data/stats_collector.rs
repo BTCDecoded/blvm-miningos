@@ -1,8 +1,8 @@
 //! Collect mining statistics from BLVM
 
-use std::sync::Arc;
 use crate::error::Result;
 use blvm_node::module::traits::NodeAPI;
+use std::sync::Arc;
 use tracing::debug;
 
 /// Statistics collector for mining data
@@ -20,12 +20,15 @@ impl StatisticsCollector {
         debug!("Collecting mining statistics");
 
         // Get chain state
-        let chain_tip = self.node_api.get_chain_tip().await
-            .map_err(|e| crate::error::MiningOsError::RpcError(format!("Failed to get chain tip: {}", e)))?;
-        let height = self.node_api.get_block_height().await
-            .map_err(|e| crate::error::MiningOsError::RpcError(format!("Failed to get block height: {}", e)))?;
+        let chain_tip = self.node_api.get_chain_tip().await.map_err(|e| {
+            crate::error::MiningOsError::RpcError(format!("Failed to get chain tip: {}", e))
+        })?;
+        let height = self.node_api.get_block_height().await.map_err(|e| {
+            crate::error::MiningOsError::RpcError(format!("Failed to get block height: {}", e))
+        })?;
 
-        let chain_tip_hex = chain_tip.iter()
+        let chain_tip_hex = chain_tip
+            .iter()
             .rev()
             .map(|b| format!("{:02x}", b))
             .collect::<String>();
@@ -33,46 +36,54 @@ impl StatisticsCollector {
 
         // Try to get chain info for additional statistics
         if let Ok(chain_info) = self.node_api.get_chain_info().await {
-            debug!("Chain info: difficulty={}, height={}", 
-                chain_info.difficulty, 
-                chain_info.height);
+            debug!(
+                "Chain info: difficulty={}, height={}",
+                chain_info.difficulty, chain_info.height
+            );
         }
 
         // Try to get network stats
         if let Ok(network_stats) = self.node_api.get_network_stats().await {
-            debug!("Network stats: peers={}, hash_rate={:.2} H/s", 
-                network_stats.peer_count,
-                network_stats.hash_rate);
+            debug!(
+                "Network stats: peers={}, hash_rate={:.2} H/s",
+                network_stats.peer_count, network_stats.hash_rate
+            );
         }
 
         // Try to get mempool size
         if let Ok(mempool_size) = self.node_api.get_mempool_size().await {
-            debug!("Mempool size: {} transactions, {} bytes", 
-                mempool_size.transaction_count,
-                mempool_size.size_bytes);
+            debug!(
+                "Mempool size: {} transactions, {} bytes",
+                mempool_size.transaction_count, mempool_size.size_bytes
+            );
         }
 
         // Try to query Stratum V2 module for mining statistics if available
         // This would require the module to be loaded and callable
         // For now, we log that this is attempted
-        debug!("Note: Mining-specific stats (hashrate, shares) require Stratum V2 module integration");
+        debug!(
+            "Note: Mining-specific stats (hashrate, shares) require Stratum V2 module integration"
+        );
 
         debug!("Statistics collection complete (height: {})", height);
         Ok(())
     }
-    
+
     /// Get current mining statistics as JSON
     pub async fn get_stats_json(&self) -> Result<serde_json::Value> {
-        let chain_tip = self.node_api.get_chain_tip().await
-            .map_err(|e| crate::error::MiningOsError::RpcError(format!("Failed to get chain tip: {}", e)))?;
-        let height = self.node_api.get_block_height().await
-            .map_err(|e| crate::error::MiningOsError::RpcError(format!("Failed to get block height: {}", e)))?;
-        
-        let chain_tip_hex = chain_tip.iter()
+        let chain_tip = self.node_api.get_chain_tip().await.map_err(|e| {
+            crate::error::MiningOsError::RpcError(format!("Failed to get chain tip: {}", e))
+        })?;
+        let height = self.node_api.get_block_height().await.map_err(|e| {
+            crate::error::MiningOsError::RpcError(format!("Failed to get block height: {}", e))
+        })?;
+
+        let chain_tip_hex = chain_tip
+            .iter()
             .rev()
             .map(|b| format!("{:02x}", b))
             .collect::<String>();
-        
+
         let mut stats = serde_json::json!({
             "chain_tip": chain_tip_hex,
             "height": height,
@@ -104,4 +115,3 @@ impl StatisticsCollector {
         Ok(stats)
     }
 }
-

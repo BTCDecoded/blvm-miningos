@@ -4,8 +4,8 @@
 //! For manual testing: blvm-miningos --module-id <id> --socket-path <path> --data-dir <dir>
 
 use anyhow::Result;
-use blvm_miningos::MiningOsModule;
 use blvm_miningos::config::MiningOsConfig;
+use blvm_miningos::MiningOsModule;
 use blvm_miningos::{api::MiningOsModuleApi, MiningOsIntegrationManager};
 use blvm_node::module::integration::ModuleIntegration;
 use blvm_node::module::ipc::protocol::{
@@ -69,7 +69,10 @@ async fn main() -> Result<()> {
         .map(|path| {
             info!("Loaded configuration from {:?}", path);
             MiningOsConfig::load(path).unwrap_or_else(|e| {
-                warn!("Failed to load config from {:?}: {}, using defaults", path, e);
+                warn!(
+                    "Failed to load config from {:?}: {}, using defaults",
+                    path, e
+                );
                 MiningOsConfig::default()
             })
         })
@@ -102,29 +105,32 @@ async fn main() -> Result<()> {
 
     info!("blvm-miningos module started successfully");
 
-    let db: Arc<dyn blvm_node::storage::database::Database> = match ModuleDb::open(&bootstrap.data_dir)
-        .or_else(|_| ModuleDb::open(std::env::temp_dir().join("blvm-miningos")))
-    {
-        Ok(module_db) => module_db.as_db(),
-        Err(_) => {
-            let dir = std::env::temp_dir().join("blvm-miningos").join("db");
-            std::fs::create_dir_all(&dir).ok();
-            Arc::from(
-                blvm_node::storage::database::create_database(
-                    &dir,
-                    blvm_node::storage::database::DatabaseBackend::Redb,
-                    None,
+    let db: Arc<dyn blvm_node::storage::database::Database> =
+        match ModuleDb::open(&bootstrap.data_dir)
+            .or_else(|_| ModuleDb::open(std::env::temp_dir().join("blvm-miningos")))
+        {
+            Ok(module_db) => module_db.as_db(),
+            Err(_) => {
+                let dir = std::env::temp_dir().join("blvm-miningos").join("db");
+                std::fs::create_dir_all(&dir).ok();
+                Arc::from(
+                    blvm_node::storage::database::create_database(
+                        &dir,
+                        blvm_node::storage::database::DatabaseBackend::Redb,
+                        None,
+                    )
+                    .expect("fallback temp db"),
                 )
-                .expect("fallback temp db"),
-            )
-        }
-    };
+            }
+        };
     let invocation_ctx = blvm_sdk::module::runner::InvocationContext::new(Arc::clone(&db));
     let module = MiningOsModule {
         manager: Arc::clone(&manager),
     };
 
-    let mut invocation_rx = integration.invocation_receiver().expect("CLI spec provided");
+    let mut invocation_rx = integration
+        .invocation_receiver()
+        .expect("CLI spec provided");
 
     let mut event_handle = tokio::spawn(async move {
         loop {
@@ -137,7 +143,8 @@ async fn main() -> Result<()> {
         if stats_config.enabled {
             let interval = stats_config.collection_interval_seconds;
             Some(tokio::spawn(async move {
-                let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(interval));
+                let mut interval =
+                    tokio::time::interval(tokio::time::Duration::from_secs(interval));
                 loop {
                     interval.tick().await;
                     if let Err(e) = stats_collector.collect().await {
@@ -157,7 +164,8 @@ async fn main() -> Result<()> {
         if template_config.enabled {
             let interval = template_config.update_interval_seconds;
             Some(tokio::spawn(async move {
-                let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(interval));
+                let mut interval =
+                    tokio::time::interval(tokio::time::Duration::from_secs(interval));
                 loop {
                     interval.tick().await;
                     if let Err(e) = template_provider.update_template().await {

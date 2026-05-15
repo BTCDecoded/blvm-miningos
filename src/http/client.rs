@@ -1,14 +1,14 @@
 //! HTTP REST API client for MiningOS
 
+use crate::error::{MiningOsError, Result};
+use crate::http::auth::OAuthConfig;
+use crate::http::endpoints::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
-use crate::error::{MiningOsError, Result};
-use crate::http::auth::OAuthConfig;
-use crate::http::endpoints::*;
 
 /// HTTP client for MiningOS app-node REST API
 pub struct MiningOsHttpClient {
@@ -20,11 +20,7 @@ pub struct MiningOsHttpClient {
 }
 
 impl MiningOsHttpClient {
-    pub fn new(
-        base_url: String,
-        oauth_config: OAuthConfig,
-        cache_dir: std::path::PathBuf,
-    ) -> Self {
+    pub fn new(base_url: String, oauth_config: OAuthConfig, cache_dir: std::path::PathBuf) -> Self {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -49,7 +45,12 @@ impl MiningOsHttpClient {
         }
 
         // Try to refresh token if we have a refresh token
-        match self.oauth_config.as_ref().refresh_token(&self.cache_dir).await {
+        match self
+            .oauth_config
+            .as_ref()
+            .refresh_token(&self.cache_dir)
+            .await
+        {
             Ok(new_token) => {
                 *self.token.write().await = Some(new_token.access_token.clone());
                 self.oauth_config.save_token(&self.cache_dir, &new_token)?;
@@ -81,7 +82,11 @@ impl MiningOsHttpClient {
         if token.is_some() {
             (true, "OAuth: authenticated (token present)".to_string())
         } else {
-            (false, "OAuth: not authenticated (no token). Set MININGOS_ACCESS_TOKEN or run OAuth flow.".to_string())
+            (
+                false,
+                "OAuth: not authenticated (no token). Set MININGOS_ACCESS_TOKEN or run OAuth flow."
+                    .to_string(),
+            )
         }
     }
 
@@ -109,7 +114,8 @@ impl MiningOsHttpClient {
         let url = format!("{}{}", self.base_url, path);
         let auth_header = self.auth_header().await?;
 
-        let mut request = self.client
+        let mut request = self
+            .client
             .request(method, &url)
             .header("Authorization", auth_header)
             .header("Content-Type", "application/json");
@@ -124,10 +130,15 @@ impl MiningOsHttpClient {
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
             error!("HTTP error {}: {}", status, error_text);
-            return Err(MiningOsError::HttpError(format!("HTTP {}: {}", status, error_text)));
+            return Err(MiningOsError::HttpError(format!(
+                "HTTP {}: {}",
+                status, error_text
+            )));
         }
 
-        let result: T = response.json().await
+        let result: T = response
+            .json()
+            .await
             .map_err(|e| MiningOsError::HttpError(format!("JSON parse failed: {}", e)))?;
         Ok(result)
     }
@@ -135,14 +146,16 @@ impl MiningOsHttpClient {
     /// List things (miners) from MiningOS
     pub async fn list_things(&self, query: &ThingQuery) -> Result<Vec<Thing>> {
         debug!("Listing things with query: {:?}", query);
-        self.request(reqwest::Method::GET, "/auth/list-things", None).await
+        self.request(reqwest::Method::GET, "/auth/list-things", None)
+            .await
     }
 
     /// Get time-series log data
     pub async fn tail_log(&self, params: &TailLogParams) -> Result<Vec<LogEntry>> {
         debug!("Tailing log with params: {:?}", params);
         // TODO: Implement proper query parameter encoding
-        self.request(reqwest::Method::GET, "/auth/tail-log", None).await
+        self.request(reqwest::Method::GET, "/auth/tail-log", None)
+            .await
     }
 
     /// Submit action
@@ -150,7 +163,8 @@ impl MiningOsHttpClient {
         debug!("Submitting action: {:?}", action);
         let body = serde_json::to_value(action)
             .map_err(|e| MiningOsError::SerializationError(e.to_string()))?;
-        self.request(reqwest::Method::POST, "/auth/actions/voting", Some(&body)).await
+        self.request(reqwest::Method::POST, "/auth/actions/voting", Some(&body))
+            .await
     }
 
     /// Vote on action
@@ -160,14 +174,19 @@ impl MiningOsHttpClient {
             "id": id,
             "approve": approve
         });
-        self.request::<serde_json::Value>(reqwest::Method::PUT, &format!("/auth/actions/voting/{}/vote", id), Some(&body)).await?;
+        self.request::<serde_json::Value>(
+            reqwest::Method::PUT,
+            &format!("/auth/actions/voting/{}/vote", id),
+            Some(&body),
+        )
+        .await?;
         Ok(())
     }
 
     /// Get global configuration
     pub async fn get_global_config(&self, fields: Option<&[String]>) -> Result<serde_json::Value> {
         debug!("Getting global config");
-        self.request(reqwest::Method::GET, "/auth/global-config", None).await
+        self.request(reqwest::Method::GET, "/auth/global-config", None)
+            .await
     }
 }
-

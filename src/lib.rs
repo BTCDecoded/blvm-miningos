@@ -7,20 +7,19 @@
 pub mod actions;
 pub mod api;
 pub mod config;
-pub mod module;
 pub mod data;
 pub mod error;
 pub mod http;
 pub mod manager;
+pub mod module;
 pub mod p2p;
 
-pub use manager::MiningOsIntegrationManager;
-pub use module::MiningOsModule;
 pub use config::MiningOsConfig;
 pub use error::{MiningOsError, Result};
+pub use manager::MiningOsIntegrationManager;
+pub use module::MiningOsModule;
 
 // Re-export commonly used types
-pub use http::MiningOsHttpClient;
-pub use data::{ThingConverter, StatisticsCollector, BlockTemplateProvider};
 pub use actions::{ActionHandler, ActionResult};
-
+pub use data::{BlockTemplateProvider, StatisticsCollector, ThingConverter};
+pub use http::MiningOsHttpClient;

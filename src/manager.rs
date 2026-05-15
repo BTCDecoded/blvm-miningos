@@ -1,15 +1,15 @@
 //! Integration manager for MiningOS module
 
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::{info, error};
-use crate::error::{MiningOsError, Result};
-use crate::config::MiningOsConfig;
-use crate::http::MiningOsHttpClient;
-use crate::data::{ThingConverter, StatisticsCollector, BlockTemplateProvider};
 use crate::actions::ActionHandler;
+use crate::config::MiningOsConfig;
+use crate::data::{BlockTemplateProvider, StatisticsCollector, ThingConverter};
+use crate::error::{MiningOsError, Result};
+use crate::http::MiningOsHttpClient;
 use crate::p2p::{BridgeIpcServer, BridgeManager};
 use blvm_node::module::traits::NodeAPI;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tracing::{error, info};
 
 /// Main integration manager
 pub struct MiningOsIntegrationManager {
@@ -25,10 +25,12 @@ pub struct MiningOsIntegrationManager {
 
 impl MiningOsIntegrationManager {
     pub fn new(config: MiningOsConfig, node_api: Arc<dyn NodeAPI>) -> Self {
-        let rack_id = config.p2p.as_ref()
+        let rack_id = config
+            .p2p
+            .as_ref()
             .map(|p| p.rack_id.clone())
             .unwrap_or_else(|| "blvm-node-001".to_string());
-        
+
         Self {
             config,
             http_client: None,
@@ -47,10 +49,12 @@ impl MiningOsIntegrationManager {
         // Initialize HTTP client if enabled
         if let Some(http_config) = &self.config.http {
             if http_config.enabled {
-                let token_endpoint = http_config
-                    .oauth_token_url
-                    .clone()
-                    .unwrap_or_else(|| format!("{}/oauth/token", http_config.app_node_url.trim_end_matches('/')));
+                let token_endpoint = http_config.oauth_token_url.clone().unwrap_or_else(|| {
+                    format!(
+                        "{}/oauth/token",
+                        http_config.app_node_url.trim_end_matches('/')
+                    )
+                });
                 let oauth_config = crate::http::auth::OAuthConfig::new(
                     http_config.oauth_provider.clone(),
                     http_config.oauth_client_id.clone(),
@@ -83,11 +87,14 @@ impl MiningOsIntegrationManager {
                     .map(std::path::PathBuf::from)
                     .unwrap_or_else(|_| std::path::PathBuf::from("./data"));
                 let socket_path = data_dir.join("bridge.sock");
-                
+
                 // Set environment variable for bridge worker
-                std::env::set_var("BLVM_RUST_SOCKET_PATH", socket_path.to_string_lossy().to_string());
+                std::env::set_var(
+                    "BLVM_RUST_SOCKET_PATH",
+                    socket_path.to_string_lossy().to_string(),
+                );
                 std::env::set_var("BLVM_RACK_ID", p2p_config.rack_id.clone());
-                
+
                 let bridge_manager = Arc::new(RwLock::new(BridgeManager::new(socket_path.clone())));
                 let bridge_server = Arc::new(BridgeIpcServer::new(
                     socket_path,
@@ -137,22 +144,22 @@ impl MiningOsIntegrationManager {
 
         Ok(())
     }
-    
+
     /// Get HTTP client (if enabled)
     pub fn get_http_client(&self) -> Option<Arc<MiningOsHttpClient>> {
         self.http_client.clone()
     }
-    
+
     /// Get thing converter
     pub fn get_thing_converter(&self) -> Arc<ThingConverter> {
         Arc::clone(&self.thing_converter)
     }
-    
+
     /// Get template provider
     pub fn get_template_provider(&self) -> Arc<BlockTemplateProvider> {
         Arc::clone(&self.template_provider)
     }
-    
+
     /// Get action handler
     pub fn get_action_handler(&self) -> Arc<ActionHandler> {
         Arc::clone(&self.action_handler)
@@ -172,4 +179,3 @@ impl MiningOsIntegrationManager {
         Ok(())
     }
 }
-

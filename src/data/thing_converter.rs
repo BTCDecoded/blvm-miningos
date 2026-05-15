@@ -1,9 +1,9 @@
 //! Convert BLVM data to MiningOS format
 
-use std::sync::Arc;
 use crate::error::Result;
-use crate::http::endpoints::{Thing, ThingSnapshot, ThingStats, MinerStats};
+use crate::http::endpoints::{MinerStats, Thing, ThingSnapshot, ThingStats};
 use blvm_node::module::traits::NodeAPI;
+use std::sync::Arc;
 use tracing::{debug, warn};
 
 /// Convert BLVM mining data to MiningOS things
@@ -18,7 +18,7 @@ impl ThingConverter {
     }
 
     /// Convert BLVM node to MiningOS thing
-    /// 
+    ///
     /// Since BLVM is a node-level system, we treat the node itself as a "miner" thing
     pub async fn convert_node_to_thing(&self) -> Result<Thing> {
         // Get chain tip and height for status
@@ -33,7 +33,11 @@ impl ThingConverter {
         Ok(Thing {
             id: thing_id,
             thing_type: "miner".to_string(),
-            tags: vec!["t-miner".to_string(), "blvm".to_string(), "node".to_string()],
+            tags: vec![
+                "t-miner".to_string(),
+                "blvm".to_string(),
+                "node".to_string(),
+            ],
             last: Some(ThingSnapshot {
                 snap: ThingStats {
                     stats: MinerStats {
@@ -48,14 +52,14 @@ impl ThingConverter {
     }
 
     /// Collect all mining things from BLVM
-    /// 
+    ///
     /// Currently returns a single thing representing the BLVM node
     pub async fn collect_mining_stats(&self) -> Result<Vec<Thing>> {
         debug!("Collecting mining stats from BLVM node");
-        
+
         // Convert node to thing
         let node_thing = self.convert_node_to_thing().await?;
-        
+
         Ok(vec![node_thing])
     }
 
@@ -102,4 +106,3 @@ impl ThingConverter {
         })
     }
 }
-

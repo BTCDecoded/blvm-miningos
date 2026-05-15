@@ -77,5 +77,3 @@ pub struct Action {
 pub struct ActionId {
     pub id: String,
 }
-
-

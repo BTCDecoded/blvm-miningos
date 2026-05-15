@@ -4,8 +4,8 @@
 //! in a standalone context (for testing).
 
 use blvm_miningos::*;
-use std::sync::Arc;
 use blvm_node::module::traits::NodeAPI;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -24,10 +24,38 @@ async fn main() -> anyhow::Result<()> {
     // Note: In a real scenario, you would have a NodeAPI implementation
     // For this example, we'll just show the structure
     println!("\nModule structure:");
-    println!("  - HTTP client: {}", if config.http.as_ref().map(|h| h.enabled).unwrap_or(false) { "enabled" } else { "disabled" });
-    println!("  - P2P bridge: {}", if config.p2p.as_ref().map(|p| p.enabled).unwrap_or(false) { "enabled" } else { "disabled" });
-    println!("  - Statistics: {}", if config.stats.as_ref().map(|s| s.enabled).unwrap_or(false) { "enabled" } else { "disabled" });
-    println!("  - Template: {}", if config.template.as_ref().map(|t| t.enabled).unwrap_or(false) { "enabled" } else { "disabled" });
+    println!(
+        "  - HTTP client: {}",
+        if config.http.as_ref().map(|h| h.enabled).unwrap_or(false) {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    );
+    println!(
+        "  - P2P bridge: {}",
+        if config.p2p.as_ref().map(|p| p.enabled).unwrap_or(false) {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    );
+    println!(
+        "  - Statistics: {}",
+        if config.stats.as_ref().map(|s| s.enabled).unwrap_or(false) {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    );
+    println!(
+        "  - Template: {}",
+        if config.template.as_ref().map(|t| t.enabled).unwrap_or(false) {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    );
 
     println!("\nTo use this module:");
     println!("1. Configure MiningOS connection in data/config/miningos.toml");
@@ -41,5 +69,3 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-

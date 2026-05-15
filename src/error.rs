@@ -6,7 +6,7 @@ use thiserror::Error;
 pub enum MiningOsError {
     #[error("HTTP client error: {0}")]
     HttpError(String),
-    
+
     #[error("HTTP request error: {0}")]
     HttpRequestError(#[from] reqwest::Error),
 
@@ -39,4 +39,3 @@ pub enum MiningOsError {
 }
 
 pub type Result<T> = std::result::Result<T, MiningOsError>;
-

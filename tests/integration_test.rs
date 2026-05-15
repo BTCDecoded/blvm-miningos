@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests {
     use blvm_miningos::*;
-    
+
     #[tokio::test]
     async fn test_config_loading() {
         // Test that default config works
@@ -12,7 +12,7 @@ mod tests {
         assert!(config.p2p.is_some());
         assert!(config.http.is_some());
     }
-    
+
     #[tokio::test]
     async fn test_error_types() {
         // Test error creation
@@ -20,5 +20,3 @@ mod tests {
         assert!(err.to_string().contains("test"));
     }
 }
-
-

@@ -193,5 +193,3 @@ fn default_timeout() -> u64 {
 fn default_miner_tag() -> String {
     "t-miner".to_string()
 }
-
-

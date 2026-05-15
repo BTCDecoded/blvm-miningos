@@ -1,10 +1,10 @@
 //! Block template provider for MiningOS
 
-use std::sync::Arc;
-use std::sync::RwLock;
 use crate::error::Result;
 use blvm_node::module::traits::NodeAPI;
 use blvm_protocol::mining::BlockTemplate;
+use std::sync::Arc;
+use std::sync::RwLock;
 use tracing::{debug, warn};
 
 /// Block template provider
@@ -46,12 +46,20 @@ impl BlockTemplateProvider {
         debug!("Updating block template from BLVM");
 
         // Request block template with default rules
-        let template = self.node_api.get_block_template(
-            vec![], // Default rules
-            None,   // No custom coinbase script
-            None,   // No custom coinbase address
-        ).await
-        .map_err(|e| crate::error::MiningOsError::RpcError(format!("Failed to get block template: {}", e)))?;
+        let template = self
+            .node_api
+            .get_block_template(
+                vec![], // Default rules
+                None,   // No custom coinbase script
+                None,   // No custom coinbase address
+            )
+            .await
+            .map_err(|e| {
+                crate::error::MiningOsError::RpcError(format!(
+                    "Failed to get block template: {}",
+                    e
+                ))
+            })?;
 
         // Cache the template
         {
@@ -65,21 +73,27 @@ impl BlockTemplateProvider {
     /// Get template as JSON for HTTP API
     pub async fn get_template_json(&self) -> Result<serde_json::Value> {
         let template = self.get_template().await?;
-        
+
         // Convert BlockTemplate to JSON format similar to Bitcoin Core's getblocktemplate
-        let coinbase_value = template.coinbase_tx.outputs.first()
+        let coinbase_value = template
+            .coinbase_tx
+            .outputs
+            .first()
             .map(|out| out.value)
             .unwrap_or(0);
-        
+
         // Convert Hash to hex string (little-endian, reversed for display)
-        let prev_hash_hex: String = template.header.prev_block_hash.iter()
+        let prev_hash_hex: String = template
+            .header
+            .prev_block_hash
+            .iter()
             .rev()
             .map(|b| format!("{:02x}", b))
             .collect();
-        
+
         // Convert target (u128) to hex
         let target_hex = format!("{:032x}", template.target);
-        
+
         Ok(serde_json::json!({
             "version": template.header.version,
             "previousblockhash": prev_hash_hex,
@@ -93,4 +107,3 @@ impl BlockTemplateProvider {
         }))
     }
 }
-

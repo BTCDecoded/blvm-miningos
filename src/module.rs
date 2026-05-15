@@ -24,7 +24,12 @@ impl MiningOsModule {
             let http_enabled = m.config.http.as_ref().map(|h| h.enabled).unwrap_or(false);
             let p2p_enabled = m.config.p2p.as_ref().map(|p| p.enabled).unwrap_or(false);
             let stats_enabled = m.config.stats.as_ref().map(|s| s.enabled).unwrap_or(false);
-            let template_enabled = m.config.template.as_ref().map(|t| t.enabled).unwrap_or(false);
+            let template_enabled = m
+                .config
+                .template
+                .as_ref()
+                .map(|t| t.enabled)
+                .unwrap_or(false);
             Ok::<String, String>(format!(
                 "MiningOS module\n\
                  HTTP: {}\n\
@@ -79,19 +84,24 @@ impl MiningOsModule {
                 let (_, status) = client.oauth_status().await;
                 Ok::<String, String>(status)
             } else {
-                Ok::<String, String>(
-                    "HTTP/OAuth not enabled. Enable [http] in config.toml.".into(),
-                )
+                Ok::<String, String>("HTTP/OAuth not enabled. Enable [http] in config.toml.".into())
             }
         })
     }
 
     /// Trigger an action (e.g. reboot, setPowerMode).
     #[command]
-    fn trigger_action(&self, _ctx: &InvocationContext, action_type: String) -> Result<String, ModuleError> {
+    fn trigger_action(
+        &self,
+        _ctx: &InvocationContext,
+        action_type: String,
+    ) -> Result<String, ModuleError> {
         let action_type = action_type.trim();
         if action_type.is_empty() {
-            return Ok("Usage: blvm miningos trigger-action <action_type> (e.g. reboot, setPowerMode)".into());
+            return Ok(
+                "Usage: blvm miningos trigger-action <action_type> (e.g. reboot, setPowerMode)"
+                    .into(),
+            );
         }
         let manager = Arc::clone(&self.manager);
         run_async(async move {
@@ -118,25 +128,25 @@ impl MiningOsModule {
             let m = manager.read().await;
             let converter = m.get_thing_converter();
             drop(m);
-                match converter.collect_mining_stats().await {
-                    Ok(things) => {
-                        if things.is_empty() {
-                            Ok::<String, String>("No miners/things registered.".into())
-                        } else {
-                            Ok::<String, String>(format!(
-                                "Miners/things ({}):\n{}",
-                                things.len(),
-                                things
-                                    .iter()
-                                    .enumerate()
-                                    .map(|(i, t)| format!("  {}. {} ({})", i + 1, t.id, t.thing_type))
-                                    .collect::<Vec<_>>()
-                                    .join("\n"),
-                            ))
-                        }
+            match converter.collect_mining_stats().await {
+                Ok(things) => {
+                    if things.is_empty() {
+                        Ok::<String, String>("No miners/things registered.".into())
+                    } else {
+                        Ok::<String, String>(format!(
+                            "Miners/things ({}):\n{}",
+                            things.len(),
+                            things
+                                .iter()
+                                .enumerate()
+                                .map(|(i, t)| format!("  {}. {} ({})", i + 1, t.id, t.thing_type))
+                                .collect::<Vec<_>>()
+                                .join("\n"),
+                        ))
                     }
-                    Err(e) => Ok::<String, String>(format!("Failed to list miners: {}", e)),
                 }
+                Err(e) => Ok::<String, String>(format!("Failed to list miners: {}", e)),
+            }
         })
     }
 }

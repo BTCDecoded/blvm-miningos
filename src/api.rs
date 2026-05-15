@@ -2,8 +2,8 @@
 //!
 //! Exposes trigger_action, get_miner_list, get_action_status for dashboards and automation.
 
-use blvm_node::module::ipc::protocol::EventPayload;
 use blvm_node::module::inter_module::api::ModuleAPI;
+use blvm_node::module::ipc::protocol::EventPayload;
 use blvm_node::module::traits::{EventType, ModuleError, NodeAPI};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -63,8 +63,8 @@ impl ModuleAPI for MiningOsModuleApi {
     ) -> Result<Vec<u8>, ModuleError> {
         match method {
             "trigger_action" => {
-                let params_json: serde_json::Value = serde_json::from_slice(params)
-                    .unwrap_or(serde_json::json!({}));
+                let params_json: serde_json::Value =
+                    serde_json::from_slice(params).unwrap_or(serde_json::json!({}));
                 let action_type = params_json
                     .get("action_type")
                     .and_then(|v| v.as_str())
@@ -90,10 +90,14 @@ impl ModuleAPI for MiningOsModuleApi {
                     .get("target")
                     .and_then(|v| v.as_str())
                     .unwrap_or("all");
-                let action_id = format!("{}_{}", action_type, std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis());
+                let action_id = format!(
+                    "{}_{}",
+                    action_type,
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis()
+                );
                 if let Some(ref api) = self.node_api {
                     let payload = EventPayload::ActionExecuted {
                         action_id: action_id.clone(),
@@ -116,7 +120,9 @@ impl ModuleAPI for MiningOsModuleApi {
                     .thing_converter
                     .collect_mining_stats()
                     .await
-                    .map_err(|e| ModuleError::OperationError(format!("Failed to list miners: {}", e)))?;
+                    .map_err(|e| {
+                        ModuleError::OperationError(format!("Failed to list miners: {}", e))
+                    })?;
                 let miners: Vec<serde_json::Value> = things
                     .iter()
                     .map(|t| {
@@ -132,18 +138,21 @@ impl ModuleAPI for MiningOsModuleApi {
             }
             "get_action_status" => {
                 let last = self.last_action.read().await;
-                let status = last.as_ref().map(|a| {
-                    serde_json::json!({
-                        "last_action_type": a.action_type,
-                        "success": a.success,
-                        "message": a.message,
-                        "tracking": "last_action_only"
+                let status = last
+                    .as_ref()
+                    .map(|a| {
+                        serde_json::json!({
+                            "last_action_type": a.action_type,
+                            "success": a.success,
+                            "message": a.message,
+                            "tracking": "last_action_only"
+                        })
                     })
-                }).unwrap_or(serde_json::json!({
-                    "last_action_type": serde_json::Value::Null,
-                    "tracking": "last_action_only",
-                    "message": "No action has been triggered yet"
-                }));
+                    .unwrap_or(serde_json::json!({
+                        "last_action_type": serde_json::Value::Null,
+                        "tracking": "last_action_only",
+                        "message": "No action has been triggered yet"
+                    }));
                 serde_json::to_vec(&status)
                     .map_err(|e| ModuleError::OperationError(format!("Serialization error: {}", e)))
             }
