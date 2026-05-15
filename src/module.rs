@@ -25,7 +25,7 @@ impl MiningOsModule {
             let p2p_enabled = m.config.p2p.as_ref().map(|p| p.enabled).unwrap_or(false);
             let stats_enabled = m.config.stats.as_ref().map(|s| s.enabled).unwrap_or(false);
             let template_enabled = m.config.template.as_ref().map(|t| t.enabled).unwrap_or(false);
-            Ok(format!(
+            Ok::<String, String>(format!(
                 "MiningOS module\n\
                  HTTP: {}\n\
                  P2P: {}\n\
@@ -49,11 +49,13 @@ impl MiningOsModule {
                 .map(|a| a.supported_actions.clone())
                 .unwrap_or_default();
             if actions.is_empty() {
-                Ok("No actions configured.\n\
+                Ok::<String, String>(
+                    "No actions configured.\n\
                     Set [actions] supported_actions in config.toml."
-                    .into())
+                        .to_owned(),
+                )
             } else {
-                Ok(format!(
+                Ok::<String, String>(format!(
                     "Supported actions ({}):\n{}",
                     actions.len(),
                     actions
@@ -75,9 +77,11 @@ impl MiningOsModule {
             let m = manager.read().await;
             if let Some(client) = m.get_http_client() {
                 let (_, status) = client.oauth_status().await;
-                Ok(status)
+                Ok::<String, String>(status)
             } else {
-                Ok("HTTP/OAuth not enabled. Enable [http] in config.toml.".into())
+                Ok::<String, String>(
+                    "HTTP/OAuth not enabled. Enable [http] in config.toml.".into(),
+                )
             }
         })
     }
@@ -97,8 +101,8 @@ impl MiningOsModule {
             let r = handler
                 .execute(action_type, &serde_json::json!({}))
                 .await
-                .map_err(|e| anyhow::anyhow!("{}", e))?;
-            Ok(format!(
+                .map_err(|e| e.to_string())?;
+            Ok::<String, String>(format!(
                 "Action {}: {}",
                 if r.success { "OK" } else { "FAILED" },
                 r.message
@@ -114,25 +118,25 @@ impl MiningOsModule {
             let m = manager.read().await;
             let converter = m.get_thing_converter();
             drop(m);
-            match converter.collect_mining_stats().await {
-                Ok(things) => {
-                    if things.is_empty() {
-                        Ok("No miners/things registered.".into())
-                    } else {
-                        Ok(format!(
-                            "Miners/things ({}):\n{}",
-                            things.len(),
-                            things
-                                .iter()
-                                .enumerate()
-                                .map(|(i, t)| format!("  {}. {} ({})", i + 1, t.id, t.thing_type))
-                                .collect::<Vec<_>>()
-                                .join("\n"),
-                        ))
+                match converter.collect_mining_stats().await {
+                    Ok(things) => {
+                        if things.is_empty() {
+                            Ok::<String, String>("No miners/things registered.".into())
+                        } else {
+                            Ok::<String, String>(format!(
+                                "Miners/things ({}):\n{}",
+                                things.len(),
+                                things
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i, t)| format!("  {}. {} ({})", i + 1, t.id, t.thing_type))
+                                    .collect::<Vec<_>>()
+                                    .join("\n"),
+                            ))
+                        }
                     }
+                    Err(e) => Ok::<String, String>(format!("Failed to list miners: {}", e)),
                 }
-                Err(e) => Ok(format!("Failed to list miners: {}", e)),
-            }
         })
     }
 }
