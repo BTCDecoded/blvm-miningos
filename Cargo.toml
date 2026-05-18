@@ -23,7 +23,7 @@ name = "basic_usage"
 path = "examples/basic_usage.rs"
 
 [dependencies]
-blvm-node = { version = ">=0.1, <1" }
+blvm-node = { version = ">=0.1, <1", features = ["sled"] }
 blvm-sdk = { version = ">=0.1, <1", default-features = false, features = ["node"] }
 blvm-sdk-macros = { version = ">=0.1, <1" }
 blvm-protocol = { version = ">=0.1, <1" }
