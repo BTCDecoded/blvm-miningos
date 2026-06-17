@@ -21,16 +21,16 @@ impl StatisticsCollector {
 
         // Get chain state
         let chain_tip = self.node_api.get_chain_tip().await.map_err(|e| {
-            crate::error::MiningOsError::RpcError(format!("Failed to get chain tip: {}", e))
+            crate::error::MiningOsError::RpcError(format!("Failed to get chain tip: {e}"))
         })?;
         let height = self.node_api.get_block_height().await.map_err(|e| {
-            crate::error::MiningOsError::RpcError(format!("Failed to get block height: {}", e))
+            crate::error::MiningOsError::RpcError(format!("Failed to get block height: {e}"))
         })?;
 
         let chain_tip_hex = chain_tip
             .iter()
             .rev()
-            .map(|b| format!("{:02x}", b))
+            .map(|b| format!("{b:02x}"))
             .collect::<String>();
         debug!("Chain tip: {}, Height: {}", chain_tip_hex, height);
 
@@ -72,16 +72,16 @@ impl StatisticsCollector {
     /// Get current mining statistics as JSON
     pub async fn get_stats_json(&self) -> Result<serde_json::Value> {
         let chain_tip = self.node_api.get_chain_tip().await.map_err(|e| {
-            crate::error::MiningOsError::RpcError(format!("Failed to get chain tip: {}", e))
+            crate::error::MiningOsError::RpcError(format!("Failed to get chain tip: {e}"))
         })?;
         let height = self.node_api.get_block_height().await.map_err(|e| {
-            crate::error::MiningOsError::RpcError(format!("Failed to get block height: {}", e))
+            crate::error::MiningOsError::RpcError(format!("Failed to get block height: {e}"))
         })?;
 
         let chain_tip_hex = chain_tip
             .iter()
             .rev()
-            .map(|b| format!("{:02x}", b))
+            .map(|b| format!("{b:02x}"))
             .collect::<String>();
 
         let mut stats = serde_json::json!({

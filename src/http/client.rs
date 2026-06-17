@@ -4,8 +4,7 @@ use crate::error::{MiningOsError, Result};
 use crate::http::auth::OAuthConfig;
 use crate::http::endpoints::*;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use std::path::Path;
+use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
@@ -101,7 +100,7 @@ impl MiningOsHttpClient {
     async fn auth_header(&self) -> Result<String> {
         let token = self.token.read().await;
         match token.as_ref() {
-            Some(t) => Ok(format!("Bearer {}", t)),
+            Some(t) => Ok(format!("Bearer {t}")),
             None => Err(MiningOsError::AuthError("Not authenticated".to_string())),
         }
     }
@@ -133,15 +132,14 @@ impl MiningOsHttpClient {
             let error_text = response.text().await.unwrap_or_default();
             error!("HTTP error {}: {}", status, error_text);
             return Err(MiningOsError::HttpError(format!(
-                "HTTP {}: {}",
-                status, error_text
+                "HTTP {status}: {error_text}"
             )));
         }
 
         let result: T = response
             .json()
             .await
-            .map_err(|e| MiningOsError::HttpError(format!("JSON parse failed: {}", e)))?;
+            .map_err(|e| MiningOsError::HttpError(format!("JSON parse failed: {e}")))?;
         Ok(result)
     }
 
@@ -178,7 +176,7 @@ impl MiningOsHttpClient {
         });
         self.request::<serde_json::Value>(
             reqwest::Method::PUT,
-            &format!("/auth/actions/voting/{}/vote", id),
+            &format!("/auth/actions/voting/{id}/vote"),
             Some(&body),
         )
         .await?;
@@ -186,7 +184,7 @@ impl MiningOsHttpClient {
     }
 
     /// Get global configuration
-    pub async fn get_global_config(&self, fields: Option<&[String]>) -> Result<serde_json::Value> {
+    pub async fn get_global_config(&self, _fields: Option<&[String]>) -> Result<serde_json::Value> {
         debug!("Getting global config");
         self.request(reqwest::Method::GET, "/auth/global-config", None)
             .await

@@ -2,7 +2,6 @@
 
 #[cfg(test)]
 mod tests {
-    use blvm_miningos::*;
 
     #[tokio::test]
     async fn test_config_loading() {

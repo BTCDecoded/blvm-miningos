@@ -32,11 +32,10 @@ impl MiningOsModule {
                 .unwrap_or(false);
             Ok::<String, String>(format!(
                 "MiningOS module\n\
-                 HTTP: {}\n\
-                 P2P: {}\n\
-                 Stats: {}\n\
-                 Template: {}",
-                http_enabled, p2p_enabled, stats_enabled, template_enabled
+                 HTTP: {http_enabled}\n\
+                 P2P: {p2p_enabled}\n\
+                 Stats: {stats_enabled}\n\
+                 Template: {template_enabled}"
             ))
         })
     }
@@ -145,7 +144,7 @@ impl MiningOsModule {
                         ))
                     }
                 }
-                Err(e) => Ok::<String, String>(format!("Failed to list miners: {}", e)),
+                Err(e) => Ok::<String, String>(format!("Failed to list miners: {e}")),
             }
         })
     }

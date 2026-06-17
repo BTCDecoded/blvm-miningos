@@ -4,8 +4,6 @@
 //! in a standalone context (for testing).
 
 use blvm_miningos::*;
-use blvm_node::module::traits::NodeAPI;
-use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

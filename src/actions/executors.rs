@@ -35,8 +35,7 @@ impl ActionExecutor for RebootExecutor {
         Ok(ActionResult {
             success: false,
             message: format!(
-                "Reboot action not yet implemented - requires system integration. Requested: delay={}s, force={}",
-                delay, force
+                "Reboot action not yet implemented - requires system integration. Requested: delay={delay}s, force={force}"
             ),
             data: Some(serde_json::json!({
                 "action": "reboot",
@@ -74,7 +73,7 @@ impl ActionExecutor for SetPowerModeExecutor {
 
         Ok(ActionResult {
             success: false,
-            message: format!("Set power mode to '{}' not yet implemented", mode),
+            message: format!("Set power mode to '{mode}' not yet implemented"),
             data: Some(serde_json::json!({
                 "action": "setPowerMode",
                 "mode": mode,
@@ -197,7 +196,7 @@ impl ActionExecutor for SetHashrateExecutor {
 
         Ok(ActionResult {
             success: false,
-            message: format!("Set hashrate to {:?} not yet implemented", hashrate),
+            message: format!("Set hashrate to {hashrate:?} not yet implemented"),
             data: Some(serde_json::json!({
                 "action": "setHashrate",
                 "hashrate": hashrate,

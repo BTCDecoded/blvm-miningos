@@ -1,7 +1,6 @@
 //! OAuth2 authentication for MiningOS
 
 use crate::error::{MiningOsError, Result};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
@@ -55,13 +54,11 @@ impl OAuthConfig {
             return Ok(None);
         }
 
-        let content = fs::read_to_string(&cache_path).map_err(|e| {
-            MiningOsError::ConfigError(format!("Failed to read token cache: {}", e))
-        })?;
+        let content = fs::read_to_string(&cache_path)
+            .map_err(|e| MiningOsError::ConfigError(format!("Failed to read token cache: {e}")))?;
 
-        let token: TokenCache = serde_json::from_str(&content).map_err(|e| {
-            MiningOsError::ConfigError(format!("Failed to parse token cache: {}", e))
-        })?;
+        let token: TokenCache = serde_json::from_str(&content)
+            .map_err(|e| MiningOsError::ConfigError(format!("Failed to parse token cache: {e}")))?;
 
         // Check if token is expired
         if let Some(expires_at) = token.expires_at {
@@ -78,9 +75,8 @@ impl OAuthConfig {
         let content = serde_json::to_string_pretty(token)
             .map_err(|e| MiningOsError::SerializationError(e.to_string()))?;
 
-        fs::write(&cache_path, content).map_err(|e| {
-            MiningOsError::ConfigError(format!("Failed to write token cache: {}", e))
-        })?;
+        fs::write(&cache_path, content)
+            .map_err(|e| MiningOsError::ConfigError(format!("Failed to write token cache: {e}")))?;
 
         Ok(())
     }
@@ -133,21 +129,18 @@ impl OAuthConfig {
             .json(&params)
             .send()
             .await
-            .map_err(|e| {
-                MiningOsError::HttpError(format!("Token refresh request failed: {}", e))
-            })?;
+            .map_err(|e| MiningOsError::HttpError(format!("Token refresh request failed: {e}")))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
             return Err(MiningOsError::AuthError(format!(
-                "Token refresh failed with status {}: {}",
-                status, error_text
+                "Token refresh failed with status {status}: {error_text}"
             )));
         }
 
         let token_response: serde_json::Value = response.json().await.map_err(|e| {
-            MiningOsError::HttpError(format!("Failed to parse token response: {}", e))
+            MiningOsError::HttpError(format!("Failed to parse token response: {e}"))
         })?;
 
         // Extract new tokens

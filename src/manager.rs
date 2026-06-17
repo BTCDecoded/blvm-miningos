@@ -3,7 +3,7 @@
 use crate::actions::ActionHandler;
 use crate::config::MiningOsConfig;
 use crate::data::{BlockTemplateProvider, StatisticsCollector, ThingConverter};
-use crate::error::{MiningOsError, Result};
+use crate::error::Result;
 use crate::http::MiningOsHttpClient;
 use crate::p2p::{BridgeIpcServer, BridgeManager};
 use blvm_node::module::traits::NodeAPI;

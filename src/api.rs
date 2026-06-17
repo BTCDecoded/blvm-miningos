@@ -78,7 +78,7 @@ impl ModuleAPI for MiningOsModuleApi {
                     .action_handler
                     .execute(action_type, &params_json)
                     .await
-                    .map_err(|e| ModuleError::OperationError(format!("Action failed: {}", e)))?;
+                    .map_err(|e| ModuleError::OperationError(format!("Action failed: {e}")))?;
                 let info = LastActionInfo {
                     action_type: action_type.to_string(),
                     success: result.success,
@@ -113,7 +113,7 @@ impl ModuleAPI for MiningOsModuleApi {
                     "message": result.message,
                     "data": result.data
                 }))
-                .map_err(|e| ModuleError::OperationError(format!("Serialization error: {}", e)))
+                .map_err(|e| ModuleError::OperationError(format!("Serialization error: {e}")))
             }
             "get_miner_list" => {
                 let things = self
@@ -121,7 +121,7 @@ impl ModuleAPI for MiningOsModuleApi {
                     .collect_mining_stats()
                     .await
                     .map_err(|e| {
-                        ModuleError::OperationError(format!("Failed to list miners: {}", e))
+                        ModuleError::OperationError(format!("Failed to list miners: {e}"))
                     })?;
                 let miners: Vec<serde_json::Value> = things
                     .iter()
@@ -134,7 +134,7 @@ impl ModuleAPI for MiningOsModuleApi {
                     })
                     .collect();
                 serde_json::to_vec(&serde_json::json!({ "miners": miners }))
-                    .map_err(|e| ModuleError::OperationError(format!("Serialization error: {}", e)))
+                    .map_err(|e| ModuleError::OperationError(format!("Serialization error: {e}")))
             }
             "get_action_status" => {
                 let last = self.last_action.read().await;
@@ -154,11 +154,10 @@ impl ModuleAPI for MiningOsModuleApi {
                         "message": "No action has been triggered yet"
                     }));
                 serde_json::to_vec(&status)
-                    .map_err(|e| ModuleError::OperationError(format!("Serialization error: {}", e)))
+                    .map_err(|e| ModuleError::OperationError(format!("Serialization error: {e}")))
             }
             _ => Err(ModuleError::OperationError(format!(
-                "Unknown method: {}",
-                method
+                "Unknown method: {method}"
             ))),
         }
     }

@@ -1,14 +1,14 @@
 //! IPC server for Node.js bridge communication
 
 use crate::actions::ActionHandler;
-use crate::data::{BlockTemplateProvider, StatisticsCollector, ThingConverter};
+use crate::data::{BlockTemplateProvider, ThingConverter};
 use crate::error::{MiningOsError, Result};
 use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 /// IPC server for communicating with Node.js bridge
 pub struct BridgeIpcServer {
@@ -40,19 +40,19 @@ impl BridgeIpcServer {
         // Remove existing socket if present
         if self.socket_path.exists() {
             std::fs::remove_file(&self.socket_path).map_err(|e| {
-                MiningOsError::IpcError(format!("Failed to remove old socket: {}", e))
+                MiningOsError::IpcError(format!("Failed to remove old socket: {e}"))
             })?;
         }
 
         // Create parent directory if needed
         if let Some(parent) = self.socket_path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
-                MiningOsError::IpcError(format!("Failed to create socket directory: {}", e))
+                MiningOsError::IpcError(format!("Failed to create socket directory: {e}"))
             })?;
         }
 
         let listener = UnixListener::bind(&self.socket_path)
-            .map_err(|e| MiningOsError::IpcError(format!("Failed to bind socket: {}", e)))?;
+            .map_err(|e| MiningOsError::IpcError(format!("Failed to bind socket: {e}")))?;
 
         info!("Bridge IPC server listening on {:?}", self.socket_path);
 
@@ -98,7 +98,7 @@ impl BridgeIpcServer {
             let n = stream
                 .read(&mut buffer)
                 .await
-                .map_err(|e| MiningOsError::IpcError(format!("Failed to read: {}", e)))?;
+                .map_err(|e| MiningOsError::IpcError(format!("Failed to read: {e}")))?;
 
             if n == 0 {
                 break; // Connection closed
@@ -107,7 +107,7 @@ impl BridgeIpcServer {
             // Parse JSON-RPC request
             let request_str = String::from_utf8_lossy(&buffer[..n]);
             let request: Value = serde_json::from_str(&request_str)
-                .map_err(|e| MiningOsError::SerializationError(format!("Invalid JSON: {}", e)))?;
+                .map_err(|e| MiningOsError::SerializationError(format!("Invalid JSON: {e}")))?;
 
             let id = request.get("id").and_then(|v| v.as_u64());
             let method = request
@@ -127,8 +127,8 @@ impl BridgeIpcServer {
                 }
                 "getBlockTemplate" => {
                     debug!("IPC: getBlockTemplate");
-                    let template = template_provider.get_template_json().await?;
-                    template
+
+                    template_provider.get_template_json().await?
                 }
                 "executeAction" => {
                     debug!("IPC: executeAction");
@@ -181,10 +181,7 @@ impl BridgeIpcServer {
                     }
                 }
                 _ => {
-                    return Err(MiningOsError::IpcError(format!(
-                        "Unknown method: {}",
-                        method
-                    )));
+                    return Err(MiningOsError::IpcError(format!("Unknown method: {method}")));
                 }
             };
 
@@ -200,11 +197,11 @@ impl BridgeIpcServer {
             stream
                 .write_all(&response_bytes)
                 .await
-                .map_err(|e| MiningOsError::IpcError(format!("Failed to write: {}", e)))?;
+                .map_err(|e| MiningOsError::IpcError(format!("Failed to write: {e}")))?;
             stream
                 .write_all(b"\n")
                 .await
-                .map_err(|e| MiningOsError::IpcError(format!("Failed to write newline: {}", e)))?;
+                .map_err(|e| MiningOsError::IpcError(format!("Failed to write newline: {e}")))?;
         }
 
         Ok(())

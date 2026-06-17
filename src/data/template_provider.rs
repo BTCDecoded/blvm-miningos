@@ -5,7 +5,7 @@ use blvm_node::module::traits::NodeAPI;
 use blvm_protocol::mining::BlockTemplate;
 use std::sync::Arc;
 use std::sync::RwLock;
-use tracing::{debug, warn};
+use tracing::debug;
 
 /// Block template provider
 pub struct BlockTemplateProvider {
@@ -55,10 +55,7 @@ impl BlockTemplateProvider {
             )
             .await
             .map_err(|e| {
-                crate::error::MiningOsError::RpcError(format!(
-                    "Failed to get block template: {}",
-                    e
-                ))
+                crate::error::MiningOsError::RpcError(format!("Failed to get block template: {e}"))
             })?;
 
         // Cache the template
@@ -88,7 +85,7 @@ impl BlockTemplateProvider {
             .prev_block_hash
             .iter()
             .rev()
-            .map(|b| format!("{:02x}", b))
+            .map(|b| format!("{b:02x}"))
             .collect();
 
         // Convert target (u128) to hex

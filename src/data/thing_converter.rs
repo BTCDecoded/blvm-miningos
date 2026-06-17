@@ -90,7 +90,7 @@ impl ThingConverter {
         // Otherwise, create a placeholder thing
         warn!("Unknown miner ID: {}, creating placeholder", miner_id);
         Ok(Thing {
-            id: format!("blvm-miner-{}", miner_id),
+            id: format!("blvm-miner-{miner_id}"),
             thing_type: "miner".to_string(),
             tags: vec!["t-miner".to_string(), "blvm".to_string()],
             last: Some(ThingSnapshot {

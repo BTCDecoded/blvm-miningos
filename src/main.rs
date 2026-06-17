@@ -128,11 +128,11 @@ async fn main() -> Result<()> {
         manager: Arc::clone(&manager),
     };
 
-    let mut invocation_rx = integration
+    let invocation_rx = integration
         .invocation_receiver()
         .expect("CLI spec provided");
 
-    let mut event_handle = tokio::spawn(async move {
+    let event_handle = tokio::spawn(async move {
         loop {
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }

@@ -3,7 +3,6 @@
 use crate::error::Result;
 use async_trait::async_trait;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Action execution result
 #[derive(Debug, Clone)]
@@ -22,7 +21,13 @@ pub trait ActionExecutor: Send + Sync {
 /// Action handler
 pub struct ActionHandler {
     executors: HashMap<String, Box<dyn ActionExecutor>>,
-    node_api: Option<std::sync::Arc<dyn blvm_node::module::traits::NodeAPI>>,
+    _node_api: Option<std::sync::Arc<dyn blvm_node::module::traits::NodeAPI>>,
+}
+
+impl Default for ActionHandler {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ActionHandler {
@@ -35,7 +40,7 @@ impl ActionHandler {
     ) -> Self {
         let mut handler = Self {
             executors: HashMap::new(),
-            node_api: node_api.clone(),
+            _node_api: node_api.clone(),
         };
 
         // Register default executors
@@ -74,7 +79,7 @@ impl ActionHandler {
             Some(executor) => executor.execute(params).await,
             None => Ok(ActionResult {
                 success: false,
-                message: format!("Unknown action type: {}", action_type),
+                message: format!("Unknown action type: {action_type}"),
                 data: None,
             }),
         }

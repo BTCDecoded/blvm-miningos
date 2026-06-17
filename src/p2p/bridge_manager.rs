@@ -79,7 +79,7 @@ impl BridgeManager {
 
         let child = cmd
             .spawn()
-            .map_err(|e| MiningOsError::P2PError(format!("Failed to spawn bridge: {}", e)))?;
+            .map_err(|e| MiningOsError::P2PError(format!("Failed to spawn bridge: {e}")))?;
 
         self.process = Some(child);
         info!("Bridge process spawned successfully");
