@@ -4,9 +4,9 @@
 //! For manual testing: blvm-miningos --module-id <id> --socket-path <path> --data-dir <dir>
 
 use anyhow::Result;
-use blvm_miningos::config::MiningOsConfig;
 use blvm_miningos::MiningOsModule;
-use blvm_miningos::{api::MiningOsModuleApi, MiningOsIntegrationManager};
+use blvm_miningos::config::MiningOsConfig;
+use blvm_miningos::{MiningOsIntegrationManager, api::MiningOsModuleApi};
 use blvm_node::module::integration::ModuleIntegration;
 use blvm_node::module::ipc::protocol::{
     InvocationResultMessage, InvocationResultPayload, InvocationType,

@@ -3,7 +3,7 @@
 use crate::actions::ActionHandler;
 use crate::data::{BlockTemplateProvider, StatisticsCollector, ThingConverter};
 use crate::error::{MiningOsError, Result};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};

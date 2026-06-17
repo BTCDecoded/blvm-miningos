@@ -89,11 +89,13 @@ impl MiningOsIntegrationManager {
                 let socket_path = data_dir.join("bridge.sock");
 
                 // Set environment variable for bridge worker
-                std::env::set_var(
-                    "BLVM_RUST_SOCKET_PATH",
-                    socket_path.to_string_lossy().to_string(),
-                );
-                std::env::set_var("BLVM_RACK_ID", p2p_config.rack_id.clone());
+                unsafe {
+                    std::env::set_var(
+                        "BLVM_RUST_SOCKET_PATH",
+                        socket_path.to_string_lossy().to_string(),
+                    );
+                    std::env::set_var("BLVM_RACK_ID", p2p_config.rack_id.clone());
+                }
 
                 let bridge_manager = Arc::new(RwLock::new(BridgeManager::new(socket_path.clone())));
                 let bridge_server = Arc::new(BridgeIpcServer::new(

@@ -70,7 +70,9 @@ impl MiningOsHttpClient {
             return Ok(());
         }
 
-        warn!("OAuth2 authentication required - set MININGOS_ACCESS_TOKEN environment variable or implement OAuth2 flow");
+        warn!(
+            "OAuth2 authentication required - set MININGOS_ACCESS_TOKEN environment variable or implement OAuth2 flow"
+        );
         Err(MiningOsError::AuthError(
             "OAuth2 authentication required. Set MININGOS_ACCESS_TOKEN environment variable or implement OAuth2 flow".to_string()
         ))
