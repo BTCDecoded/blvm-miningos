@@ -3,11 +3,17 @@
 use crate::actions::ActionHandler;
 use crate::data::{BlockTemplateProvider, ThingConverter};
 use crate::error::{MiningOsError, Result};
+#[cfg(unix)]
 use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::sync::Arc;
+#[cfg(unix)]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[cfg(unix)]
 use tokio::net::{UnixListener, UnixStream};
+#[cfg(not(unix))]
+use tracing::error;
+#[cfg(unix)]
 use tracing::{debug, error, info};
 
 /// IPC server for communicating with Node.js bridge
@@ -37,6 +43,20 @@ impl BridgeIpcServer {
     }
 
     pub async fn listen(&self) -> Result<()> {
+        self.listen_inner().await
+    }
+
+    #[cfg(not(unix))]
+    async fn listen_inner(&self) -> Result<()> {
+        let _ = &self.socket_path;
+        error!("Bridge IPC requires a Unix domain socket");
+        Err(MiningOsError::IpcError(
+            "Bridge IPC uses a Unix domain socket and is unavailable on this platform".to_string(),
+        ))
+    }
+
+    #[cfg(unix)]
+    async fn listen_inner(&self) -> Result<()> {
         // Remove existing socket if present
         if self.socket_path.exists() {
             std::fs::remove_file(&self.socket_path).map_err(|e| {
@@ -85,6 +105,7 @@ impl BridgeIpcServer {
         }
     }
 
+    #[cfg(unix)]
     async fn handle_connection(
         mut stream: UnixStream,
         thing_converter: Arc<ThingConverter>,

@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
         Some(MiningOsModule::cli_spec()),
     )
     .await
-    .map_err(|e| anyhow::anyhow!("Connection failed: {}", e))?;
+    .map_err(|e| anyhow::anyhow!("Connection failed: {e}"))?;
 
     integration
         .subscribe_events(vec![
@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
             EventType::MiningDifficultyChanged,
         ])
         .await
-        .map_err(|e| anyhow::anyhow!("Subscription failed: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Subscription failed: {e}"))?;
 
     let node_api = integration.node_api();
 
@@ -85,12 +85,12 @@ async fn main() -> Result<()> {
 
     if let Err(e) = manager.initialize().await {
         error!("Failed to initialize: {}", e);
-        return Err(anyhow::anyhow!("Initialization failed: {}", e));
+        return Err(anyhow::anyhow!("Initialization failed: {e}"));
     }
 
     if let Err(e) = manager.start().await {
         error!("Failed to start: {}", e);
-        return Err(anyhow::anyhow!("Start failed: {}", e));
+        return Err(anyhow::anyhow!("Start failed: {e}"));
     }
 
     let manager = Arc::new(RwLock::new(manager));
