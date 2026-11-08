@@ -88,8 +88,7 @@ impl BlockTemplateProvider {
             .map(|b| format!("{b:02x}"))
             .collect();
 
-        // Convert target (u128) to hex
-        let target_hex = format!("{:032x}", template.target);
+        let target_hex = template.target.gbt_target_hex();
 
         Ok(serde_json::json!({
             "version": template.header.version,

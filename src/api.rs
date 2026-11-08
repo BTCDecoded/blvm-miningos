@@ -99,13 +99,16 @@ impl ModuleAPI for MiningOsModuleApi {
                         .as_millis()
                 );
                 if let Some(ref api) = self.node_api {
-                    let payload = EventPayload::ActionExecuted {
-                        action_id: action_id.clone(),
-                        action_type: action_type.to_string(),
-                        target: target.to_string(),
-                        success: result.success,
-                    };
-                    let _ = api.publish_event(EventType::ActionExecuted, payload).await;
+                    let payload = EventPayload::module_event_json(
+                        "ActionExecuted",
+                        &serde_json::json!({
+                            "action_id": action_id,
+                            "action_type": action_type,
+                            "target": target,
+                            "success": result.success,
+                        }),
+                    );
+                    let _ = api.publish_event(EventType::ModuleEvent, payload).await;
                 }
 
                 serde_json::to_vec(&serde_json::json!({
