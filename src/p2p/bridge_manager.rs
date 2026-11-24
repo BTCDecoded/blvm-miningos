@@ -23,10 +23,10 @@ impl BridgeManager {
         ];
 
         // Try to find from current executable location
-        if let Ok(exe) = std::env::current_exe() {
-            if let Some(parent) = exe.parent() {
-                possible_paths.push(parent.join("bridge/worker.js"));
-            }
+        if let Ok(exe) = std::env::current_exe()
+            && let Some(parent) = exe.parent()
+        {
+            possible_paths.push(parent.join("bridge/worker.js"));
         }
 
         let bridge_path = possible_paths

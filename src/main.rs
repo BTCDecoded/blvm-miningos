@@ -63,23 +63,17 @@ async fn main() -> Result<()> {
         std::path::PathBuf::from("./miningos.toml"),
     ];
 
-    let config = config_paths
-        .iter()
-        .find(|p| p.exists())
-        .map(|path| {
+    let config = match config_paths.iter().find(|path| path.exists()) {
+        Some(path) => {
             info!("Loaded configuration from {:?}", path);
-            MiningOsConfig::load(path).unwrap_or_else(|e| {
-                warn!(
-                    "Failed to load config from {:?}: {}, using defaults",
-                    path, e
-                );
-                MiningOsConfig::default()
-            })
-        })
-        .unwrap_or_else(|| {
+            MiningOsConfig::load(path)
+                .map_err(|error| anyhow::anyhow!("Failed to load config from {path:?}: {error}"))?
+        }
+        None => {
             info!("No config file found, using defaults");
             MiningOsConfig::default()
-        });
+        }
+    };
 
     let mut manager = MiningOsIntegrationManager::new(config, node_api.clone());
 

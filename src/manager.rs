@@ -47,68 +47,68 @@ impl MiningOsIntegrationManager {
         info!("Initializing MiningOS integration module");
 
         // Initialize HTTP client if enabled
-        if let Some(http_config) = &self.config.http {
-            if http_config.enabled {
-                let token_endpoint = http_config.oauth_token_url.clone().unwrap_or_else(|| {
-                    format!(
-                        "{}/oauth/token",
-                        http_config.app_node_url.trim_end_matches('/')
-                    )
-                });
-                let oauth_config = crate::http::auth::OAuthConfig::new(
-                    http_config.oauth_provider.clone(),
-                    http_config.oauth_client_id.clone(),
-                    http_config.oauth_client_secret.clone(),
-                    http_config.oauth_callback_url.clone(),
-                    http_config.token_cache_file.clone(),
-                    token_endpoint,
-                );
+        if let Some(http_config) = &self.config.http
+            && http_config.enabled
+        {
+            let token_endpoint = http_config.oauth_token_url.clone().unwrap_or_else(|| {
+                format!(
+                    "{}/oauth/token",
+                    http_config.app_node_url.trim_end_matches('/')
+                )
+            });
+            let oauth_config = crate::http::auth::OAuthConfig::new(
+                http_config.oauth_provider.clone(),
+                http_config.oauth_client_id.clone(),
+                http_config.oauth_client_secret.clone(),
+                http_config.oauth_callback_url.clone(),
+                http_config.token_cache_file.clone(),
+                token_endpoint,
+            );
 
-                // Use data directory from config or default
-                let cache_dir = std::env::var("BLVM_DATA_DIR")
-                    .map(std::path::PathBuf::from)
-                    .unwrap_or_else(|_| std::path::PathBuf::from("./data"));
-                let client = Arc::new(MiningOsHttpClient::new(
-                    http_config.app_node_url.clone(),
-                    oauth_config,
-                    cache_dir,
-                ));
+            // Use data directory from config or default
+            let cache_dir = std::env::var("BLVM_DATA_DIR")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|_| std::path::PathBuf::from("./data"));
+            let client = Arc::new(MiningOsHttpClient::new(
+                http_config.app_node_url.clone(),
+                oauth_config,
+                cache_dir,
+            ));
 
-                self.http_client = Some(client);
-            }
+            self.http_client = Some(client);
         }
 
         // Initialize P2P bridge if enabled
-        if let Some(p2p_config) = &self.config.p2p {
-            if p2p_config.enabled {
-                // Use data directory for socket path
-                let data_dir = std::env::var("MODULE_DATA_DIR")
-                    .or_else(|_| std::env::var("BLVM_DATA_DIR"))
-                    .map(std::path::PathBuf::from)
-                    .unwrap_or_else(|_| std::path::PathBuf::from("./data"));
-                let socket_path = data_dir.join("bridge.sock");
+        if let Some(p2p_config) = &self.config.p2p
+            && p2p_config.enabled
+        {
+            // Use data directory for socket path
+            let data_dir = std::env::var("MODULE_DATA_DIR")
+                .or_else(|_| std::env::var("BLVM_DATA_DIR"))
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|_| std::path::PathBuf::from("./data"));
+            let socket_path = data_dir.join("bridge.sock");
 
-                // Set environment variable for bridge worker
-                unsafe {
-                    std::env::set_var(
-                        "BLVM_RUST_SOCKET_PATH",
-                        socket_path.to_string_lossy().to_string(),
-                    );
-                    std::env::set_var("BLVM_RACK_ID", p2p_config.rack_id.clone());
-                }
-
-                let bridge_manager = Arc::new(RwLock::new(BridgeManager::new(socket_path.clone())));
-                let bridge_server = Arc::new(BridgeIpcServer::new(
-                    socket_path,
-                    Arc::clone(&self.thing_converter),
-                    Arc::clone(&self.template_provider),
-                    Arc::clone(&self.action_handler),
-                    Some(Arc::clone(&self.stats_collector)),
-                ));
-
-                self.bridge_manager = Some(bridge_manager);
-                self.bridge_server = Some(bridge_server);
+            // Set environment variable for bridge worker
+            unsafe {
+                std::env::set_var(
+                    "BLVM_RUST_SOCKET_PATH",
+                    socket_path.to_string_lossy().to_string(),
+                );
+                std::env::set_var("BLVM_RACK_ID", p2p_config.rack_id.clone());
             }
+
+            let bridge_manager = Arc::new(RwLock::new(BridgeManager::new(socket_path.clone())));
+            let bridge_server = Arc::new(BridgeIpcServer::new(
+                socket_path,
+                Arc::clone(&self.thing_converter),
+                Arc::clone(&self.template_provider),
+                Arc::clone(&self.action_handler),
+                Some(Arc::clone(&self.stats_collector)),
+            ));
+
+            self.bridge_manager = Some(bridge_manager);
+            self.bridge_server = Some(bridge_server);
         }
 
         Ok(())
@@ -118,11 +118,11 @@ impl MiningOsIntegrationManager {
         info!("Starting MiningOS integration module");
 
         // Authenticate HTTP client
-        if let Some(client) = &self.http_client {
-            if let Err(e) = client.authenticate().await {
-                error!("Failed to authenticate HTTP client: {}", e);
-                // Continue anyway - authentication might be manual
-            }
+        if let Some(client) = &self.http_client
+            && let Err(e) = client.authenticate().await
+        {
+            error!("Failed to authenticate HTTP client: {}", e);
+            // Continue anyway - authentication might be manual
         }
 
         // Start bridge server in background

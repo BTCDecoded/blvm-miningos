@@ -61,10 +61,10 @@ impl OAuthConfig {
             .map_err(|e| MiningOsError::ConfigError(format!("Failed to parse token cache: {e}")))?;
 
         // Check if token is expired
-        if let Some(expires_at) = token.expires_at {
-            if chrono::Utc::now().timestamp() as u64 >= expires_at {
-                return Ok(None); // Token expired
-            }
+        if let Some(expires_at) = token.expires_at
+            && chrono::Utc::now().timestamp() as u64 >= expires_at
+        {
+            return Ok(None); // Token expired
         }
 
         Ok(Some(token))
